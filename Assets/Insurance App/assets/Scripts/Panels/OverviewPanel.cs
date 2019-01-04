@@ -36,6 +36,8 @@ public class OverviewPanel : MonoBehaviour, IPanel
         reconstructedImg.LoadImage(UIManager.Instance.activeCase.photoTaken);
 
         rawImage.texture = reconstructedImg as Texture;
+
+        UIManager.Instance.activeCase.date = dateText.text;
     }
 
     public void ProcessInfo()

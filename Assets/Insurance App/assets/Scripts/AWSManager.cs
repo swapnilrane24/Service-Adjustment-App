@@ -11,6 +11,8 @@ using System.Collections.Generic;
 using Amazon.CognitoIdentity;
 using Amazon;
 using UnityEngine.SceneManagement;
+using System.Linq;
+using System.Runtime.Serialization.Formatters.Binary;
 
 public class AWSManager : MonoBehaviour
 {
@@ -109,6 +111,76 @@ public class AWSManager : MonoBehaviour
             }
         }
         );
+    }
+
+    public void GetList(string caseNumber, Action onComplete = null)
+    {
+        Debug.Log("AWSMANAGER::GetList()");
+        string target = "case#" + caseNumber;
+
+        var request = new ListObjectsRequest()
+        {
+            BucketName = bucketName
+        };
+
+        S3Client.ListObjectsAsync(request, (response) =>
+        {
+            if (response.Exception == null)
+            {
+                bool casefound = response.Response.S3Objects.Any(obj => obj.Key == target);
+
+                if (casefound == true)
+                {
+                    Debug.Log("Found Case File");
+
+                    S3Client.GetObjectAsync(bucketName, target, (responseObj) =>
+                      {
+                          if (responseObj.Response.ResponseStream != null)
+                          {
+                              byte[] data = null;
+
+                              using (StreamReader reader = new StreamReader(responseObj.Response.ResponseStream))
+                              {
+                                  using (MemoryStream memory = new MemoryStream())
+                                  {
+                                      var buffer = new byte[512];
+                                      var bytesRead = default(int);
+
+                                      while ((bytesRead = reader.BaseStream.Read(buffer, 0, buffer.Length)) > 0)
+                                      {
+                                          memory.Write(buffer, 0, bytesRead);
+                                      }
+
+                                      data = memory.ToArray();
+                                  }
+                              }
+
+                              using (MemoryStream memory = new MemoryStream(data))
+                              {
+                                  BinaryFormatter bf = new BinaryFormatter();
+                                  Case downloadedCase = bf.Deserialize(memory) as Case;
+
+                                  UIManager.Instance.activeCase = downloadedCase;
+
+                                  if (onComplete != null)
+                                      onComplete();
+                              }
+
+                          }
+
+
+
+                      });
+
+                }
+                else
+                {
+                    Debug.Log("Case File Not Found");
+                }
+            }
+            else
+                Debug.LogError("Exception occured during getting list: " + response.Exception);
+        });
     }
 
 }

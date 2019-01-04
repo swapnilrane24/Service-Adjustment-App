@@ -9,6 +9,6 @@ public class SelectPanel : MonoBehaviour, IPanel
 
     public void ProcessInfo()
     {
-       
+        OverviewPanel.Instance.SetOverviewPanel();
     }
 }
